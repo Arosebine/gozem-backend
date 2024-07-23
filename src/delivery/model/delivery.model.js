@@ -7,9 +7,6 @@ const deliverySchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    user_id: {
-        type: String,
-    },
     delivery_id: {
         type: String,
         required: true,
