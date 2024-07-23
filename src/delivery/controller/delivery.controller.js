@@ -73,10 +73,6 @@ exports.updateDelivery = async (req, res, next) => {
         const updatedDelivery = await Delivery.findByIdAndUpdate(
             id,
             {
-                user_id,
-                pickup_time: pickupDate,
-                start_time: startDate,
-                end_time: endDate,
                 location: deliveryLocation,
                 status
             },
