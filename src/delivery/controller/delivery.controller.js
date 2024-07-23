@@ -11,7 +11,7 @@ exports.createDelivery = async (req, res, next) => {
         const { id } = req.params;
         const {  location, status } = req.body;
 
-        const packageDetails = await Package.findById(id);
+        const packageDetails = await Package.findOne({ package_id: id });
         if (!packageDetails) {
             return res.status(404).json({
                 success: false,
@@ -36,7 +36,7 @@ exports.createDelivery = async (req, res, next) => {
 
         const newDelivery = await Delivery.create({
             name: packageDetails.packageName,
-            package_id: packageDetails._id,
+            package_id: packageDetails.package_id,
             location: deliveryLocation,
             status
         });
@@ -55,7 +55,7 @@ exports.updateDelivery = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { location, status } = req.body;
-        const deliveryDetails = await Delivery.findById(id);
+        const deliveryDetails = await Delivery.findOne({ delivery_id: id });
 
         const Location = await geocoder.geocode(location);
         if (!Location.length) {
@@ -71,7 +71,7 @@ exports.updateDelivery = async (req, res, next) => {
         };
 
         const updatedDelivery = await Delivery.findByIdAndUpdate(
-            id,
+            deliveryDetails._id,
             {
                 location: deliveryLocation,
                 status
@@ -101,7 +101,6 @@ exports.getDeliveryById = async (req, res, next) =>{
     try {
         const { id } = req.params;
         const delivery = await Delivery.findOne({delivery_id: id})
-        .populate('package_id', 'packageName from_name from_address');
         if (!delivery) {
             return res.status(404).json({
                 success: false,
@@ -109,10 +108,12 @@ exports.getDeliveryById = async (req, res, next) =>{
                 error: `Delivery with id: ${id} not found`
             });
         }
+        const packageDetails = await Package.findOne({ package_id: delivery.package_id });
         return res.status(200).json({
             success: true,
             message: 'Delivery found',
-            data: delivery
+            deliveryDetails: delivery,
+            packageDetails
         });
     } catch (error) {
         next(error);
@@ -142,7 +143,7 @@ exports.getAllDeliveries = async (req, res, next) => {
 exports.deleteDelivery = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const delivery = await Delivery.findByIdAndDelete(id);
+        const delivery = await Delivery.findOneAndDelete({delivery_id: id });
         if (!delivery) {
             return res.status(404).json({
                 success: false,
@@ -159,3 +160,4 @@ exports.deleteDelivery = async (req, res, next) => {
         next(error);
     }
 };
+
