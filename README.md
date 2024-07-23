@@ -29,3 +29,10 @@ for the API endpoints, please refer to the documentation link above.
 1. `PORT=9090`
 2. `MONGO_DB_URL=mongodb://localhost:27017/gozem`
 3. `GOOGLE_API_KEY=953af983db5d49a2989f6ae516f43288`
+
+
+# `Websocket Connection`
+1. `wss://gozem-backend.onrender.com`
+2. event_listen: `packageUpdated`
+3. event_send: `packageUpdated`
+4. event_data: `deliveryId, status`
