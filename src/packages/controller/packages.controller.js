@@ -1,4 +1,5 @@
 const Package = require('../model/packages.model');
+const Delivery = require('../../delivery/model/delivery.model');
 const NodeGeocoder = require('node-geocoder');
 
         const geocoder = NodeGeocoder({
@@ -12,7 +13,7 @@ exports.createPackage = async (req, res, next) => {
 
         const fromLocation = await geocoder.geocode(from_address);
         if (!fromLocation.length) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: 'Invalid from_address provided',
                 error: `Geocoding failed for from_address: ${from_address}`
@@ -21,7 +22,7 @@ exports.createPackage = async (req, res, next) => {
 
         const toLocation = await geocoder.geocode(to_address);
         if (!toLocation.length) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: 'Invalid to_address provided',
                 error: `Geocoding failed for to_address: ${to_address}`
@@ -64,7 +65,7 @@ exports.createPackage = async (req, res, next) => {
 
 exports.getAllPackages = async (req, res, next) => {
     try {
-        const packages = await Package.find();
+        const packages = await Package.find().sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             message: 'All packages retrieved successfully',
@@ -78,23 +79,48 @@ exports.getAllPackages = async (req, res, next) => {
 exports.getPackageById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const package = await Package.findById(id);
-        if (!package) {
+        const packageData = await Package.findById(id);
+
+        if (!packageData) {
             return res.status(404).json({
                 success: false,
                 message: 'Package not found',
                 error: `Package with id: ${id} not found`
             });
         }
+
+        const activeDeliveries = await Delivery.findOne({ package_id: packageData._id });
+
+        if (!activeDeliveries) {
+            return res.status(200).json({
+                success: true,
+                message: 'No active deliveries found for this package',
+                data: packageData,
+            });
+        }
+
+        const statusMessages = {
+            'delivered': 'Package already delivered',
+            'cancelled': 'Package already cancelled',
+            'failed': 'Package delivery failed to delivered',
+            'in-transit': 'Package already in transit',
+            'Open': 'Package will be delivered soon'
+        };
+
+        const message = statusMessages[activeDeliveries.status] || 'Package retrieved successfully';
+        const success = activeDeliveries.status !== 'cancelled';
+
         return res.status(200).json({
-            success: true,
-            message: 'Package retrieved successfully',
-            data: package
+            success: success,
+            message: message,
+            data: packageData,
+            DeliveryDetails: activeDeliveries
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 exports.updatePackage = async (req, res, next) => {
     try {
@@ -106,7 +132,7 @@ exports.updatePackage = async (req, res, next) => {
         if (from_address) {
             const fromLocation = await geocoder.geocode(from_address);
             if (!fromLocation.length) {
-                return res.status(400).json({
+                return res.status(200).json({
                     success: false,
                     message: 'Invalid from_address provided',
                     error: `Geocoding failed for from_address: ${from_address}`
@@ -122,7 +148,7 @@ exports.updatePackage = async (req, res, next) => {
         if (to_address) {
             const toLocation = await geocoder.geocode(to_address);
             if (!toLocation.length) {
-                return res.status(400).json({
+                return res.status(200).json({
                     success: false,
                     message: 'Invalid to_address provided',
                     error: `Geocoding failed for to_address: ${to_address}`
