@@ -13,8 +13,8 @@ const deliverySchema = new mongoose.Schema({
         default: referralCodeGenerator.custom('lowercase', 10, 7, 'Gozem-delivery'),
     },
     package_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        type: String,
+        required: true
     },
     pickup_time: {
         type: Date,

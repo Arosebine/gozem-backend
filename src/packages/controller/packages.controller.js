@@ -79,7 +79,7 @@ exports.getAllPackages = async (req, res, next) => {
 exports.getPackageById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const packageData = await Package.findById(id);
+        const packageData = await Package.findOne({ package_id: id });
 
         if (!packageData) {
             return res.status(404).json({
@@ -125,7 +125,7 @@ exports.getPackageById = async (req, res, next) => {
 exports.updatePackage = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { from_address, to_address } = req.body;
+        const { from_address, to_address, packageName, description, weight, width, height, depth, from_name, } = req.body;
 
         const updateData = req.body;
 
@@ -161,7 +161,7 @@ exports.updatePackage = async (req, res, next) => {
             };
         }
 
-        const updatedPackage = await Package.findByIdAndUpdate(id, updateData, { new: true });
+        const updatedPackage = await Package.findOneAndUpdate({ delivery_id:id }, updateData, { new: true });
 
         if (!updatedPackage) {
             return res.status(404).json({
@@ -185,7 +185,7 @@ exports.deletePackage = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const deletedPackage = await Package.findByIdAndDelete(id);
+        const deletedPackage = await Package.findOneAndDelete({ package_id: id });
 
         if (!deletedPackage) {
             return res.status(404).json({
@@ -203,3 +203,5 @@ exports.deletePackage = async (req, res, next) => {
         next(error);
     }
 };
+
+
