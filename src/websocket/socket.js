@@ -1,39 +1,80 @@
 const Delivery = require('../../src/delivery/model/delivery.model');
-
-
+const NodeGeocoder = require('node-geocoder');
+const geocoder = NodeGeocoder({
+  provider: 'opencage',
+  apiKey: process.env.GOOGLE_API_KEY
+});
 
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('Client connected');
 
-    socket.on('packageUpdated', async (data) => {
+    socket.on('status_changed', async (data) => {
       try {
         const { deliveryId, status } = data;
-        const package = await Delivery.findOneAndUpdate({ delivery_id: deliveryId}, {$set: {status: status } },{ new: true });
-        if (package) {
-          if (package.status === 'open') {
-            package.status = 'picked-up';
-            package.pickup_time = Date.now();
-          } else if (package.status === 'picked-up') {
-            package.status = 'in-transit';
-            package.start_time = Date.now();
-          } else if (package.status === 'in-transit') {
-            package.status = 'delivered';
-            package.end_time = Date.now();
-          } else if (package.status === 'delivered') {
-            package.end_time = Date.now();
-          } else if (package.status === 'failed') {
-            package.status = 'open';
-            package.start_time = Date.now();
-          }
-          await package.save();
-          
-          io.emit('packageUpdated', package);
+
+        const delivery = await Delivery.findOneAndUpdate(
+          { delivery_id: deliveryId },
+          { $set: { status: status } },
+          { new: true }
+        );
+
+        if (delivery) {
+          updateStatus(delivery, status);
+          await delivery.save();
+          io.emit('status_changed', delivery);
         } else {
-          console.log(`Package with name ${packageName} not found`);
+          console.log(`Delivery with ID ${deliveryId} not found`);
         }
       } catch (error) {
-        console.error(`Error updating package: ${error.message}`);
+        console.error(`Error updating delivery status: ${error.message}`);
+        socket.emit('error', {
+          success: false,
+          message: 'Internal server error',
+          error: error.message
+        });
+      }
+    });
+
+    socket.on('location_changed', async (data) => {
+      try {
+        const { deliveryId, location } = data;
+
+        const Location = await geocoder.geocode(location);
+        if (!Location.length) {
+          socket.emit('error', {
+            success: false,
+            message: 'Invalid location provided',
+            error: `Geocoding failed for location: ${location}`
+          });
+          return;
+        }
+
+        const deliveryLocation = {
+          lat: Location[0].latitude,
+          lng: Location[0].longitude
+        };
+
+        const delivery = await Delivery.findOneAndUpdate(
+          { delivery_id: deliveryId },
+          { location: deliveryLocation },
+          { new: true }
+        );
+
+        if (delivery) {
+          updateStatus(delivery, delivery.status);
+          await delivery.save();
+          io.emit('location_changed', delivery);
+        } else {
+          console.log(`Delivery with ID ${deliveryId} not found`);
+        }
+      } catch (error) {
+        console.error(`Error updating delivery location: ${error.message}`);
+        socket.emit('error', {
+          success: false,
+          message: 'Internal server error',
+          error: error.message
+        });
       }
     });
 
@@ -42,3 +83,30 @@ module.exports = (io) => {
     });
   });
 };
+
+function updateStatus(delivery, status) {
+  switch (status) {
+    case 'open':
+      delivery.status = 'picked-up';
+      delivery.pickup_time = Date.now();
+      break;
+    case 'picked-up':
+      delivery.status = 'in-transit';
+      delivery.start_time = Date.now();
+      break;
+    case 'in-transit':
+      delivery.status = 'delivered';
+      delivery.end_time = Date.now();
+      break;
+    case 'delivered':
+      delivery.end_time = Date.now();
+      break;
+    case 'failed':
+      delivery.status = 'open';
+      delivery.start_time = Date.now();
+      break;
+    default:
+      console.log(`Unknown status: ${status}`);
+      break;
+  }
+}
