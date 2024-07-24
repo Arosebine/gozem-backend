@@ -2,10 +2,10 @@ const Delivery = require('../model/delivery.model');
 const Package = require('../../packages/model/packages.model');
 const NodeGeocoder = require('node-geocoder');
 
-        const geocoder = NodeGeocoder({
-            provider: 'opencage',
-            apiKey: process.env.GOOGLE_API_KEY
-        });
+const geocoder = NodeGeocoder({
+    provider: 'opencage',
+    apiKey: process.env.GOOGLE_API_KEY
+});
 exports.createDelivery = async (req, res, next) => {
     try {
         const { id } = req.params;
