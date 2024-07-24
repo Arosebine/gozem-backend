@@ -33,6 +33,14 @@ for the API endpoints, please refer to the documentation link above.
 
 # `Websocket Connection`
 1. `wss://gozem-backend.onrender.com`
-2. event_listen: `packageUpdated`
-3. event_send: `packageUpdated`
+
+# `For Status_changed`
+2. event_listen: `status_changed`
+3. event_send: `status_changed`
 4. event_data: `deliveryId, status`
+
+
+# `For location_changed`
+5. event_listen: `location_changed`
+6. event_send: `location_changed`
+7. event_data: `deliveryId, location`
